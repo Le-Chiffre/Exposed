@@ -320,3 +320,41 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
         return  other.tableName == tableName
     }
 }
+
+/**
+ * Helper class for creating tables that contain objects which are retrieved fully.
+ *
+ * class Images: BaseLookupTable<Int, Image>("image_id", Table::integer) {
+ *    val url = varchar("image_url", 200)
+ *
+ *    override fun toData(r: ResultRow) = Image(r[Images.id], r[Images.url])
+ * }
+ */
+abstract class BaseLookupTable<T, U>(keyName: String, keyType: Table.(String) -> Column<T>): Table() {
+    val id = keyType(keyName).primaryKey()
+
+    init {id.columnType.autoinc = true}
+
+    abstract fun toData(r: ResultRow): U
+
+    fun lookup(key: T) {}
+}
+
+/**
+ * The default key format for lookup tables is Long.
+ */
+abstract class LookupTable<T>(keyName: String): BaseLookupTable<Long, T>(keyName, Table::long) {}
+
+
+// Helper functions for looking up objects.
+fun <T, U> BaseLookupTable<T, U>.lookup(db: Database, key: T) = find(db) {{id.eq(key)}}
+
+fun <T, U, V: BaseLookupTable<T, U>> V.find(db: Database, predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
+    select(predicate()).first()
+}
+
+fun <T, U> BaseLookupTable<T, U>.lookupList(db: Database, keys: List<T>) = findList(db) {{id.inList(keys)}}
+
+fun <T, U, V: BaseLookupTable<T, U>> V.findList(db: Database, predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
+    select(predicate()) map {toData(it)}
+}
