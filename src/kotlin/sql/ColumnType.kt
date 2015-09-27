@@ -73,6 +73,19 @@ data class CharacterColumnType() : ColumnType() {
     }
 }
 
+data class ShortColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
+    override fun sqlType(): String  = "SMALLINT"
+
+    override fun valueFromDB(value: Any): Any {
+        return when(value) {
+            is Short -> value
+            is Int -> value.toShort()
+            is Number -> value.toShort()
+            else -> error("Unexpected value of type Int: $value")
+        }
+    }
+}
+
 data class IntegerColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
     override fun sqlType(): String  = "INT"
 
@@ -99,6 +112,19 @@ data class LongColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
 
 data class DecimalColumnType(val scale: Int, val precision: Int): ColumnType() {
     override fun sqlType(): String  = "DECIMAL($scale, $precision)"
+}
+
+data class FloatColumnType(): ColumnType() {
+    override fun sqlType(): String  = "FLOAT"
+
+    override fun valueFromDB(value: Any): Any {
+        return when(value) {
+            is Float -> value
+            is Int -> value.toFloat()
+            is Number -> value.toFloat()
+            else -> error("Unexpected value of type Int: $value")
+        }
+    }
 }
 
 data class EnumerationColumnType<T:Enum<T>>(val klass: Class<T>): ColumnType() {
@@ -163,6 +189,44 @@ data class DateColumnType(val time: Boolean): ColumnType() {
             else {
                 return java.sql.Date(millis)
             }
+        }
+        return value
+    }
+}
+
+data class TimestampColumnType: ColumnType() {
+    override fun sqlType(): String = "TIMESTAMP"
+
+    protected override fun nonNullValueToString(value: Any): String {
+        if (value is String) return value
+
+        val dateTime = when (value) {
+            is DateTime -> value
+            is java.sql.Date -> DateTime(value.time)
+            is java.sql.Timestamp -> DateTime(value.time)
+            else -> error("Unexpected value: $value")
+        } as DateTime
+
+        val zonedTime = dateTime.toDateTime(Database.timeZone)
+        return "'${zonedTime.toString("YYYY-MM-dd HH:mm:ss.SSS", Locale.ROOT)}'"
+    }
+
+    override fun valueFromDB(value: Any): Any {
+        if (value is java.sql.Date) {
+            return DateTime(value)
+        }
+
+        if (value is java.sql.Timestamp) {
+            return DateTime(value.time)
+        }
+
+        return value
+    }
+
+    override fun notNullValueToDB(value: Any): Any {
+        if(value is DateTime) {
+            val millis = value.millis
+            return java.sql.Timestamp(millis)
         }
         return value
     }

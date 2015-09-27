@@ -157,6 +157,12 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
         return answer
     }
 
+    fun short(name: String): Column<Short> {
+        val answer = Column<Short>(this, name, ShortColumnType())
+        columns.add(answer)
+        return answer
+    }
+
     fun char(name: String): Column<Char> {
         val answer = Column<Char>(this, name, CharacterColumnType())
         columns.add(answer)
@@ -165,6 +171,12 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
 
     fun decimal(name: String, scale: Int, precision: Int): Column<BigDecimal> {
         val answer = Column<BigDecimal>(this, name, DecimalColumnType(scale, precision))
+        columns.add(answer)
+        return answer
+    }
+
+    fun float(name: String): Column<Float> {
+        val answer = Column<Float>(this, name, FloatColumnType())
         columns.add(answer)
         return answer
     }
@@ -189,6 +201,12 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
 
     fun datetime(name: String): Column<DateTime> {
         val answer = Column<DateTime>(this, name, DateColumnType(true))
+        columns.add(answer)
+        return answer
+    }
+
+    fun timestamp(name: String): Column<DateTime> {
+        val answer = Column<DateTime>(this, name, TimestampColumnType())
         columns.add(answer)
         return answer
     }
