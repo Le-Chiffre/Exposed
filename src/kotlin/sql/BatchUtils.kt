@@ -24,7 +24,7 @@ fun PreparedStatement.fillParameters(columns: List<Column<*>>, values: Map<Colum
             values[it]
         else if (it.defaultValue != null)
             it.defaultValue!!
-        else if (it.columnType.nullable)
+        else if (it.columnType.isNullable)
             null
         else
             error("No value specified for column ${it.name} of table ${it.table.tableName}")

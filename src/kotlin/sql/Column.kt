@@ -1,11 +1,6 @@
 package kotlin.sql
 
-
-open class Column<T>(val table: Table,
-                     val name: String,
-                     override val columnType: ColumnType,
-                     val isPrimaryKey: Boolean = false
-) : ExpressionWithColumnType<T>, DdlAware {
+open class Column<T>(val table: Table, val name: String, override val columnType: ColumnType) : ExpressionWithColumnType<T>, DdlAware {
     var referee: Column<*>? = null
     var onDelete: ReferenceOption? = null
     var defaultValue: T? = null
@@ -24,25 +19,26 @@ open class Column<T>(val table: Table,
 
     public fun descriptionDdl(): String {
         val ddl = StringBuilder(Session.get().identity(this)).append(" ")
-        val colType = columnType
-        ddl.append(colType.sqlType())
+        ddl.append(columnType.sqlType())
 
-        if (isPrimaryKey) {
+        if (this is PKColumn<*>) {
             ddl.append(" PRIMARY KEY")
         }
-        if (colType.autoinc) {
+        if (columnType.isAutoIncrement) {
             ddl.append(" ").append(Session.get().autoIncrement(this))
         }
-        if (colType.nullable) {
+        if (columnType.isNullable) {
             ddl.append(" NULL")
         } else {
             ddl.append(" NOT NULL")
         }
 
         if (defaultValue != null) {
-            ddl.append (" DEFAULT ${colType.valueToString(defaultValue!!)}")
+            ddl.append (" DEFAULT ${columnType.valueToString(defaultValue!!)}")
         }
 
         return ddl.toString()
     }
 }
+
+class PKColumn<T>(table: Table, name: String, columnType: ColumnType) : Column<T>(table, name, columnType)

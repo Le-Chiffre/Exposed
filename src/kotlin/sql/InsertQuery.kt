@@ -48,7 +48,7 @@ class InsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace
         }
 
         try {
-            val autoincs: List<String> = table.columns.filter { it.columnType.autoinc } map {session.identity(it)}
+            val autoincs: List<String> = table.columns.filter { it.columnType.isAutoIncrement } map {session.identity(it)}
             return builder.executeUpdate(session, sql.toString(), autoincs) { rs ->
                 if (rs.next()) {
                     generatedKey = rs.getInt(1)

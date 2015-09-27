@@ -9,7 +9,7 @@ class UpdateQuery(val target: ((Session)->String), val limit: Int?, val where: O
         if (values containsKey column) {
             error("$column is already initialized")
         }
-        if (!column.columnType.nullable && value == null) {
+        if (!column.columnType.isNullable && value == null) {
             error("Trying to set null to not nullable column $column")
         }
         values[column] = value

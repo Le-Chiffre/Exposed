@@ -135,7 +135,7 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
     }
 
     fun <T> Column<T>.primaryKey(): Column<T> {
-        val answer = replaceColumn(this, Column<T>(table, name, columnType, true))
+        val answer = replaceColumn (this, PKColumn<T>(table, name, columnType))
         primaryKeys.add(answer)
         return answer
     }
@@ -230,13 +230,13 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
         return answer
     }
 
-    fun <C:Column<Int>> C.autoIncrement(): C {
-        (columnType as IntegerColumnType).autoinc = true
+    fun <C:Column<out Number>> C.autoIncrement(): C {
+        (columnType as IntegerColumnType).isAutoIncrement = true
         return this
     }
 
     fun <C:Column<EntityID>> C.autoinc(): C {
-        (columnType as EntityIDColumnType).autoinc = true
+        (columnType as EntityIDColumnType).isAutoIncrement = true
         return this
     }
 
@@ -267,7 +267,7 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
         val newColumn = Column<T?> (table, name, columnType)
         newColumn.referee = referee
         newColumn.defaultValue = defaultValue
-        newColumn.columnType.nullable = true
+        newColumn.columnType.isNullable = true
         return replaceColumn (this, newColumn)
     }
 
@@ -332,41 +332,9 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
  *    override fun toData(r: ResultRow) = Image(r[Images.id], r[Images.url])
  * }
  */
-open class BaseLookupTable<T, U>(private val type: Class<U>, keyName: String, keyType: Table.(String) -> Column<T>): Table() {
-    val id = keyType(keyName).primaryKey()
+open class BaseLookupTable<T: Number, U>(private val type: Class<U>, keyName: String, keyType: Table.(String) -> Column<T>): Table() {
+    val id = keyType(keyName).primaryKey().autoIncrement()
     private var constructor: Constructor<U>? = null
-
-    init {
-        id.columnType.autoinc = true
-
-        // Find the correct constructor.
-        var constructor: Constructor<U>? = null
-        var errorString = ""
-
-        for(c in type.constructors) {
-            errorString += "Checking constructor ${c.name}...\n"
-
-            if(c.parameterCount == this.columns.size()) {
-                // Check if each argument is compatible with the database,
-                // and give a detailed error if not to aid debugging.
-                for(i in 0..c.parameters.size() - 1) {
-                    val target = c.parameters[i].type
-                    val source = columns[i].columnType.javaClass
-                    if(!target.isAssignableFrom(source)) {
-                        errorString += "    failed because ${source.name} is incompatible with ${target.name}.\n"
-                    }
-                }
-                constructor = c as Constructor<U>
-            } else {
-                errorString += "    failed because the number of arguments differs.\n"
-            }
-        }
-
-        if(constructor == null)
-            throw IllegalArgumentException("Class ${type.simpleName} has no valid constructor:\n$errorString")
-
-        this.constructor = constructor
-    }
 
     open fun format(r: ResultRow): U = findConstructor().newInstance(*r.data)
 
@@ -410,17 +378,17 @@ open class BaseLookupTable<T, U>(private val type: Class<U>, keyName: String, ke
 /**
  * The default key format for lookup tables is Long.
  */
-open class LookupTable<T>(type: Class<T>, keyName: String): BaseLookupTable<Long, T>(type, keyName, Table::long) {}
+open class LookupTable<T: Number>(type: Class<T>, keyName: String): BaseLookupTable<Long, T>(type, keyName, Table::long) {}
 
 
 // Helper functions for looking up objects.
-fun <T, U> BaseLookupTable<T, U>.lookup(db: Database, key: T) = find(db) {{id eq key}}
+fun <T: Number, U> BaseLookupTable<T, U>.lookup(db: Database, key: T) = find(db) {{id eq key}}
 
 inline fun <T, U, V: BaseLookupTable<T, U>> V.find(db: Database, crossinline predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
     format(select(predicate()).first())
 }
 
-fun <T, U> BaseLookupTable<T, U>.lookupList(db: Database, keys: List<T>) = findList(db) {{id inList keys}}
+fun <T: Number, U> BaseLookupTable<T, U>.lookupList(db: Database, keys: List<T>) = findList(db) {{id inList keys}}
 
 inline fun <T, U, V: BaseLookupTable<T, U>> V.findList(db: Database, crossinline predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
     select(predicate()) map {format(it)}

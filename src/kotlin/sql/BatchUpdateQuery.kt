@@ -43,7 +43,7 @@ class BatchUpdateQuery(val table: IdTable) {
                 log(sqlText, columns.map {it.columnType to d[it]} + (IntegerColumnType() to id))
 
                 val idx = stmt.fillParameters(columns, d)
-                stmt.setInt(idx, id.value)
+                stmt.setLong(idx, id.value)
                 stmt.addBatch()
             }
 

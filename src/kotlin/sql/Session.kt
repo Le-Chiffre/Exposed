@@ -220,7 +220,7 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
             }
 
             // sync nullability of existing columns
-            val incorrectNullabilityColumns = table.columns.filter { existingTableColumns[table.tableName]?.contains(it.name to !it.columnType.nullable) ?: false}
+            val incorrectNullabilityColumns = table.columns.filter { existingTableColumns[table.tableName]?.contains(it.name to !it.columnType.isNullable) ?: false}
             for (column in incorrectNullabilityColumns) {
                 statements.add(column.modifyStatement())
             }

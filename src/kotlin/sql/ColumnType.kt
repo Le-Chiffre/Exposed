@@ -7,7 +7,8 @@ import java.util.*
 import kotlin.dao.EntityID
 import kotlin.dao.IdTable
 
-abstract class ColumnType(var nullable: Boolean = false, var autoinc: Boolean = false) {
+
+abstract class ColumnType(var isNullable: Boolean = false, var isAutoIncrement: Boolean = false) {
     public abstract fun sqlType(): String
 
     public open fun valueFromDB(value: Any): Any  = value
@@ -15,7 +16,7 @@ abstract class ColumnType(var nullable: Boolean = false, var autoinc: Boolean = 
     public fun valueToString(value: Any?) : String {
         return when (value) {
             null -> {
-                if (!nullable) error("NULL in non-nullable column")
+                if (!isNullable) error("NULL in non-nullable column")
                 "NULL"
             }
 
@@ -56,7 +57,7 @@ data class EntityIDColumnType(val table: IdTable, autoinc: Boolean = false): Col
     override fun valueFromDB(value: Any): Any {
         return when (value) {
             is EntityID -> EntityID(value.value, table)
-            else -> EntityID(value as Int, table)
+            else -> EntityID(value as Long, table)
         }
     }
 }
@@ -250,7 +251,7 @@ data class StringColumnType(val length: Int = 65535, val collate: String? = null
 
     val charactersToEscape = hashMapOf(
             '\'' to "\'\'",
-//            '\"' to "\"\"", // no need to escape double quote as we put string in single quotes
+            //            '\"' to "\"\"", // no need to escape double quote as we put string in single quotes
             '\r' to "\\r",
             '\n' to "\\n")
 

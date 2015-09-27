@@ -7,10 +7,10 @@ import kotlin.sql.*
 /**
  * @author max
  */
-public class EntityID(id: Int, val table: IdTable) {
+public class EntityID(id: Long, val table: IdTable) {
     var _value = id
-    val value: Int get() {
-        if (_value == -1) {
+    val value: Long get() {
+        if (_value == -1L) {
             EntityCache.getOrCreate(Session.get()).flushInserts(table)
             assert(_value > 0) { "Entity must be inserted" }
         }
@@ -20,7 +20,7 @@ public class EntityID(id: Int, val table: IdTable) {
 
     override fun toString() = value.toString()
 
-    override fun hashCode() = value
+    override fun hashCode() = value.hashCode()
 
     override fun equals(other: Any?): Boolean {
         if (other !is EntityID) return false
