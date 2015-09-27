@@ -134,8 +134,8 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
         return newColumn
     }
 
-    fun <T> Column<T>.primaryKey(): PKColumn<T> {
-        val answer = replaceColumn (this, PKColumn<T>(table, name, columnType))
+    fun <T> Column<T>.primaryKey(): Column<T> {
+        val answer = replaceColumn(this, Column<T>(table, name, columnType, true))
         primaryKeys.add(answer)
         return answer
     }

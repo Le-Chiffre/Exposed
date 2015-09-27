@@ -1,7 +1,11 @@
 package kotlin.sql
 
 
-open class Column<T>(val table: Table, val name: String, override val columnType: ColumnType) : ExpressionWithColumnType<T>, DdlAware {
+open class Column<T>(val table: Table,
+                     val name: String,
+                     override val columnType: ColumnType,
+                     val isPrimaryKey: Boolean = false
+) : ExpressionWithColumnType<T>, DdlAware {
     var referee: Column<*>? = null
     var onDelete: ReferenceOption? = null
     var defaultValue: T? = null
@@ -10,8 +14,7 @@ open class Column<T>(val table: Table, val name: String, override val columnType
         return Session.get().fullIdentity(this);
     }
 
-    val ddl: String
-        get() = createStatement()
+    val ddl: String get() = createStatement()
 
     override fun createStatement(): String = "ALTER TABLE ${Session.get().identity(table)} ADD COLUMN ${descriptionDdl()}"
 
@@ -24,7 +27,7 @@ open class Column<T>(val table: Table, val name: String, override val columnType
         val colType = columnType
         ddl.append(colType.sqlType())
 
-        if (this is PKColumn<*>) {
+        if (isPrimaryKey) {
             ddl.append(" PRIMARY KEY")
         }
         if (colType.autoinc) {
@@ -42,7 +45,4 @@ open class Column<T>(val table: Table, val name: String, override val columnType
 
         return ddl.toString()
     }
-}
-
-class PKColumn<T>(table: Table, name: String, columnType: ColumnType) : Column<T>(table, name, columnType) {
 }
