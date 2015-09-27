@@ -332,9 +332,9 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
  *    override fun toData(r: ResultRow) = Image(r[Images.id], r[Images.url])
  * }
  */
-open class BaseLookupTable<T, U>(val type: Class<U>, keyName: String, keyType: Table.(String) -> Column<T>): Table() {
+open class BaseLookupTable<T, U>(private val type: Class<U>, keyName: String, keyType: Table.(String) -> Column<T>): Table() {
     val id = keyType(keyName).primaryKey()
-    var constructor: Constructor<U>? = null
+    private var constructor: Constructor<U>? = null
 
     init {
         id.columnType.autoinc = true
