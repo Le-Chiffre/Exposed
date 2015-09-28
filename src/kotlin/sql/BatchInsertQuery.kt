@@ -19,8 +19,8 @@ class BatchInsertQuery(val table: Table, val _ignore: Boolean = false) {
         values.put(column, column.columnType.valueToDB(value))
     }
 
-    fun execute(session: Session): List<Int> {
-        val generatedKeys = ArrayList<Int>()
+    fun execute(session: Session): List<Long> {
+        val generatedKeys = ArrayList<Long>()
         val (auto, columns) = table.columns.partition { it.columnType.isAutoIncrement }
         val ignore = if (_ignore) "IGNORE" else ""
         var sql = StringBuilder("INSERT $ignore INTO ${session.identity(table)}")
@@ -51,7 +51,7 @@ class BatchInsertQuery(val table: Table, val _ignore: Boolean = false) {
                 if (auto.isNotEmpty()) {
                     val rs = stmt.generatedKeys!!
                     while (rs.next()) {
-                        generatedKeys.add(rs.getInt(1))
+                        generatedKeys.add(rs.getLong(1))
                     }
 
                     if (generatedKeys.size() == 1 && count.size() > 1) {

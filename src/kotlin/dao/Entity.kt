@@ -213,7 +213,7 @@ open public class Entity(val id: EntityID) {
     @Suppress("UNCHECKED_CAST")
     fun <T:Any?> Column<T>.lookup(): T = when {
         writeValues.containsKey(this) -> writeValues[this] as T
-        id._value == -1 && _readValues?.contains(this)?.not() ?: true -> {
+        id._value == -1L && _readValues?.contains(this)?.not() ?: true -> {
             defaultValue as T
         }
         else -> readValues[this]
@@ -286,18 +286,18 @@ open public class Entity(val id: EntityID) {
 
 @Suppress("UNCHECKED_CAST")
 class EntityCache {
-    val data = HashMap<IdTable, MutableMap<Int, Entity>>()
+    val data = HashMap<IdTable, MutableMap<Long, Entity>>()
     val inserts = HashMap<IdTable, MutableList<Entity>>()
     val referrers = HashMap<Entity, MutableMap<Column<*>, SizedIterable<*>>>()
 
-    private fun <T: Entity> getMap(f: EntityClass<T>) : MutableMap<Int, T> {
+    private fun <T: Entity> getMap(f: EntityClass<T>) : MutableMap<Long, T> {
         return getMap(f.table)
     }
 
-    private fun <T: Entity> getMap(table: IdTable) : MutableMap<Int, T> {
+    private fun <T: Entity> getMap(table: IdTable) : MutableMap<Long, T> {
         val answer = data.getOrPut(table, {
             HashMap()
-        }) as MutableMap<Int, T>
+        }) as MutableMap<Long, T>
 
         return answer
     }
@@ -475,13 +475,13 @@ abstract public class EntityClass<out T: Entity>(val table: IdTable) {
         return findById(id) ?: error("Entity not found in database")
     }
 
-    public fun get(id: Int): T {
+    public fun get(id: Long): T {
         return findById(id) ?: error("Entity not found in database")
     }
 
     open protected fun warmCache(): EntityCache = EntityCache.getOrCreate(Session.get())
 
-    public fun findById(id: Int): T? {
+    public fun findById(id: Long): T? {
         return findById(EntityID(id, table))
     }
 
@@ -510,7 +510,7 @@ abstract public class EntityClass<out T: Entity>(val table: IdTable) {
         return wrapRows(searchQuery(Op.build {table.id inList ids}))
     }
 
-    public fun forIds(ids: List<Int>) : SizedIterable<T> {
+    public fun forIds(ids: List<Long>) : SizedIterable<T> {
         val cached = ids.map { testCache(EntityID(it, table)) }.filterNotNull()
         if (cached.size() == ids.size()) {
             return SizedCollection(cached)
@@ -637,7 +637,7 @@ abstract public class ImmutableEntityClass<out T: Entity>(table: IdTable) : Enti
 
 abstract public class ImmutableCachedEntityClass<T: Entity>(table: IdTable) : ImmutableEntityClass<T>(table) {
 
-    private var _cachedValues: MutableMap<Int, Entity>? = null
+    private var _cachedValues: MutableMap<Long, Entity>? = null
 
     final override fun warmCache(): EntityCache {
         val sessionCache = super.warmCache()
