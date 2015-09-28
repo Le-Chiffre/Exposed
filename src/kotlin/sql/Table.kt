@@ -1,12 +1,18 @@
 package kotlin.sql
 
 import org.joda.time.DateTime
+import java.lang
 import java.lang.reflect.Constructor
 import java.math.BigDecimal
 import java.sql.Blob
-import java.util.ArrayList
+import java.util.*
 import kotlin.dao.EntityID
 import kotlin.dao.IdTable
+import kotlin.reflect.KCallable
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.jvm.javaConstructor
+import kotlin.reflect.jvm.javaType
 
 interface FieldSet {
     val fields: List<Expression<*>>
@@ -332,55 +338,88 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
  *    override fun toData(r: ResultRow) = Image(r[Images.id], r[Images.url])
  * }
  */
-open class BaseLookupTable<T: Number, U>(private val type: Class<U>, keyName: String, keyType: Table.(String) -> Column<T>): Table() {
+open class BaseLookupTable<T: Number, U>(private val type: KClass<*>, keyName: String, keyType: Table.(String) -> Column<T>): Table() {
     val id = keyType(keyName).primaryKey().autoIncrement()
-    private var constructor: Constructor<U>? = null
+
+    // The cached constructor we use to create value instances.
+    private var constructor: KFunction<U>? = null
+
+    // A set of constructor argument indices that are primitives, and where the corresponding table column can be null.
+    private var primitives = ArrayList<Pair<Int, Any>>()
+
+    // A set of constructor argument indices that are strings, and where the corresponding table column can be null.
+    private var strings = ArrayList<Int>()
 
     fun lookup(db: Database, key: T) = find(db) {{id eq key}}
     fun lookupList(db: Database, keys: List<T>) = findList(db) {{id inList keys}}
 
-    open fun format(r: ResultRow): U = findConstructor(r).newInstance(*r.data)
+    open fun format(r: ResultRow): U {
+        val values = r.getAll(columns)
+        val constructor = findConstructor(values)
 
-    private fun findConstructor(r: ResultRow): Constructor<U> {
+        primitives.forEach {values[it.first] = values[it.first] ?: it.second}
+        strings.forEach {values[it] = values[it] ?: ""}
+
+        return constructor.call(*values)
+    }
+
+    private fun findConstructor(r: Array<Any?>): KFunction<U> {
         // We need a result row to find the correct constructor, because the types from the table are erased.
         if(constructor == null) {
-            var constructor: Constructor<U>? = null
             var errorString = ""
 
             // Find the correct constructor.
-            for(c in type.constructors) {
-                errorString += "Checking constructor ${c.name}...\n"
+            val constructor = type.constructors.find {
+                errorString += "Checking constructor ${it.name}...\n"
 
-                if(c.parameterCount == r.data.size()) {
+                if(it.parameters.size() == r.size()) {
                     // Check if each argument is compatible with the database,
                     // and give a detailed error if not to aid debugging.
-                    var invalidCount = 0
-                    for(i in 0..c.parameters.size() - 1) {
-                        val target = c.parameters[i].type
-                        val source = r.data[i]?.javaClass
-
+                    r.zip(it.javaConstructor!!.parameterTypes).fold(true) {v, p ->
+                        val (column, arg) = p
                         // Check if the types are compatible.
                         // We can't really do anything useful if the source is null, though.
-                        if(source != null && !target.isAssignableFrom(source)) {
-                            invalidCount++
-                            errorString += "    failed because ${source.name} is incompatible with ${target.name}.\n"
-                            continue
-                        }
-                    }
-
-                    if(invalidCount == 0) {
-                        constructor = c as Constructor<U>
+                        if(column != null && !arg.isAssignableFrom(column.javaClass) && !arg.isPrimitive) {
+                            errorString += "    failed because ${arg.name} is incompatible with ${column.javaClass.name}.\n"
+                            false
+                        } else true
                     }
                 } else {
                     errorString += "    failed because the number of arguments differs.\n"
+                    false
                 }
             }
 
-            if(constructor == null) {
-                throw IllegalArgumentException("Class ${type.simpleName} has no valid constructor:\n$errorString")
+            constructor ?: throw IllegalArgumentException("Class ${type.simpleName} has no valid constructor:\n$errorString")
+
+            primitives.clear()
+            strings.clear()
+
+            // Find the primitive and string values that need special handling.
+            columns.zip(constructor.javaConstructor!!.parameterTypes).forEachIndexed {i, v ->
+                if(v.first.columnType.isNullable && v.second.isPrimitive) {
+                    primitives.add(Pair(i, when(v.second) {
+                        lang.Long.TYPE -> 0L
+                        lang.Integer.TYPE -> 0
+                        lang.Short.TYPE -> 0.toShort()
+                        lang.Byte.TYPE -> 0.toByte()
+                        lang.Float.TYPE -> 0f
+                        lang.Double.TYPE -> 0.0
+                        lang.Boolean.TYPE -> false
+                        else -> 0
+                    }))
+                }
             }
 
-            this.constructor = constructor
+            columns.forEachIndexed {i, column ->
+                if(column.columnType.isNullable
+                    && !constructor.parameters[i].type.isMarkedNullable
+                    && constructor.javaConstructor!!.parameterTypes[i] == String::class.java) {
+                    strings.add(i)
+                }
+            }
+
+            this.constructor = constructor as KFunction<U>
         }
 
         return constructor!!
@@ -390,7 +429,7 @@ open class BaseLookupTable<T: Number, U>(private val type: Class<U>, keyName: St
 /**
  * The default key format for lookup tables is Long.
  */
-open class LookupTable<T>(type: Class<T>, keyName: String): BaseLookupTable<Long, T>(type, keyName, Table::long) {}
+open class LookupTable<T>(type: KClass<*>, keyName: String): BaseLookupTable<Long, T>(type, keyName, Table::long) {}
 
 
 // Helper functions for creating selects.

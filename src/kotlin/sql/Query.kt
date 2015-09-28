@@ -23,6 +23,8 @@ public class ResultRow(size: Int, private val fieldIndex: Map<Expression<*>, Int
         } as T
     }
 
+    fun getAll(columns: Collection<Expression<*>>) = columns.map {get(it)}.toTypedArray()
+
     fun <T> set(c: Expression<T>, value: T) {
         val index = fieldIndex[c] ?: error("${c.toSQL(QueryBuilder(false))} is not in record set")
         data[index] = value
@@ -48,7 +50,7 @@ public class ResultRow(size: Int, private val fieldIndex: Map<Expression<*>, Int
             val answer = ResultRow(size, fieldsIndex)
 
             fields.forEachIndexed{ i, f ->
-                answer.data[i]  = when {
+                answer.data[i] = when {
                     f is Column<*> && f.columnType is BlobColumnType -> rs.getBlob(i + 1)
                     else -> rs.getObject(i + 1)
                 }
