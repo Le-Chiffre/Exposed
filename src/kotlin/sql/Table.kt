@@ -336,6 +336,9 @@ open class BaseLookupTable<T: Number, U>(private val type: Class<U>, keyName: St
     val id = keyType(keyName).primaryKey().autoIncrement()
     private var constructor: Constructor<U>? = null
 
+    fun lookup(db: Database, key: T) = find(db) {{id eq key}}
+    fun lookupList(db: Database, keys: List<T>) = findList(db) {{id inList keys}}
+
     open fun format(r: ResultRow): U = findConstructor().newInstance(*r.data)
 
     private fun findConstructor(): Constructor<U> {
@@ -378,17 +381,13 @@ open class BaseLookupTable<T: Number, U>(private val type: Class<U>, keyName: St
 /**
  * The default key format for lookup tables is Long.
  */
-open class LookupTable<T: Number>(type: Class<T>, keyName: String): BaseLookupTable<Long, T>(type, keyName, Table::long) {}
+open class LookupTable<T>(type: Class<T>, keyName: String): BaseLookupTable<Long, T>(type, keyName, Table::long) {}
 
 
-// Helper functions for looking up objects.
-fun <T: Number, U> BaseLookupTable<T, U>.lookup(db: Database, key: T) = find(db) {{id eq key}}
-
+// Helper functions for creating selects.
 inline fun <T, U, V: BaseLookupTable<T, U>> V.find(db: Database, crossinline predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
     format(select(predicate()).first())
 }
-
-fun <T: Number, U> BaseLookupTable<T, U>.lookupList(db: Database, keys: List<T>) = findList(db) {{id inList keys}}
 
 inline fun <T, U, V: BaseLookupTable<T, U>> V.findList(db: Database, crossinline predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
     select(predicate()) map {format(it)}
