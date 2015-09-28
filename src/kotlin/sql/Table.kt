@@ -339,9 +339,10 @@ open class BaseLookupTable<T: Number, U>(private val type: Class<U>, keyName: St
     fun lookup(db: Database, key: T) = find(db) {{id eq key}}
     fun lookupList(db: Database, keys: List<T>) = findList(db) {{id inList keys}}
 
-    open fun format(r: ResultRow): U = findConstructor().newInstance(*r.data)
+    open fun format(r: ResultRow): U = findConstructor(r).newInstance(*r.data)
 
-    private fun findConstructor(): Constructor<U> {
+    private fun findConstructor(r: ResultRow): Constructor<U> {
+        // We need a result row to find the correct constructor, because the types from the table are erased.
         if(constructor == null) {
             var constructor: Constructor<U>? = null
             var errorString = ""
@@ -350,18 +351,26 @@ open class BaseLookupTable<T: Number, U>(private val type: Class<U>, keyName: St
             for(c in type.constructors) {
                 errorString += "Checking constructor ${c.name}...\n"
 
-                if(c.parameterCount == this.columns.size()) {
+                if(c.parameterCount == r.data.size()) {
                     // Check if each argument is compatible with the database,
                     // and give a detailed error if not to aid debugging.
+                    var invalidCount = 0
                     for(i in 0..c.parameters.size() - 1) {
                         val target = c.parameters[i].type
-                        val source = columns[i].columnType.javaClass
-                        if(!target.isAssignableFrom(source)) {
+                        val source = r.data[i]?.javaClass
+
+                        // Check if the types are compatible.
+                        // We can't really do anything useful if the source is null, though.
+                        if(source != null && !target.isAssignableFrom(source)) {
+                            invalidCount++
                             errorString += "    failed because ${source.name} is incompatible with ${target.name}.\n"
                             continue
                         }
                     }
-                    constructor = c as Constructor<U>
+
+                    if(invalidCount == 0) {
+                        constructor = c as Constructor<U>
+                    }
                 } else {
                     errorString += "    failed because the number of arguments differs.\n"
                 }
