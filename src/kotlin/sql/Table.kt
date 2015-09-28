@@ -231,12 +231,12 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
     }
 
     fun <C:Column<out Number>> C.autoIncrement(): C {
-        (columnType as IntegerColumnType).isAutoIncrement = true
+        columnType.isAutoIncrement = true
         return this
     }
 
     fun <C:Column<EntityID>> C.autoinc(): C {
-        (columnType as EntityIDColumnType).isAutoIncrement = true
+        columnType.isAutoIncrement = true
         return this
     }
 
