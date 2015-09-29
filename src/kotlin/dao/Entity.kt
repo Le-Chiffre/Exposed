@@ -93,6 +93,7 @@ open class ColumnWithTransform<TColumn, TReal>(val column: Column<TColumn>, val 
 
 public class View<out Target: Entity> (val op : Op<Boolean>, val factory: EntityClass<Target>) : SizedIterable<Target> {
     override fun limit(n: Int): SizedIterable<Target> = factory.find(op).limit(n)
+    override fun offset(n: Int): SizedIterable<Target> = factory.find(op).offset(n)
     override fun count(): Int = factory.find(op).count()
     override fun empty(): Boolean = factory.find(op).empty()
     override fun forUpdate(): SizedIterable<Target> = factory.find(op).forUpdate()
