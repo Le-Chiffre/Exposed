@@ -2,6 +2,7 @@ package kotlin.sql
 
 public interface SizedIterable<out T>: Iterable<T> {
     fun limit(n: Int): SizedIterable<T>
+    fun offset(n: Int): SizedIterable<T>
     fun count(): Int
     fun empty(): Boolean
     fun forUpdate(): SizedIterable<T> = this
@@ -20,6 +21,8 @@ class EmptySizedIterable<T> : SizedIterable<T>, Iterator<T> {
     override fun limit(n: Int): SizedIterable<T> {
         return this;
     }
+
+    override fun offset(n: Int) = this
 
     override fun empty(): Boolean {
         return true
@@ -43,6 +46,10 @@ public class SizedCollection<out T>(val delegate: Collection<T>): SizedIterable<
         return SizedCollection(delegate.take(n))
     }
 
+    override fun offset(n: Int): SizedIterable<T> {
+        return SizedCollection(delegate.drop(n))
+    }
+
     override fun iterator() = delegate.iterator()
     override fun count() = delegate.size()
     override fun empty() = delegate.isEmpty()
@@ -61,6 +68,7 @@ public class LazySizedCollection<out T>(val delegate: SizedIterable<T>): SizedIt
     }
 
     override fun limit(n: Int): SizedIterable<T> = delegate.limit(n)
+    override fun offset(n: Int): SizedIterable<T> = delegate.offset(n)
     override fun iterator() = wrapper.iterator()
     override fun count() = _wrapper?.size() ?: _count()
     override fun empty() = _wrapper?.isEmpty() ?: _empty()
@@ -89,6 +97,7 @@ fun <T, R> SizedIterable<T>.mapLazy(f:(T)->R):SizedIterable<R> {
     val source = this
     return object : SizedIterable<R> {
         override fun limit(n: Int): SizedIterable<R> = source.limit(n).mapLazy(f)
+        override fun offset(n: Int): SizedIterable<R> = source.offset(n).mapLazy(f)
         override fun forUpdate(): SizedIterable<R> = source.forUpdate().mapLazy(f)
         override fun notForUpdate(): SizedIterable<R> = source.notForUpdate().mapLazy(f)
         override fun count(): Int = source.count()

@@ -65,6 +65,7 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
     val orderByColumns = ArrayList<Pair<Expression<*>, Boolean>>();
     var having: Op<Boolean>? = null;
     var limit: Int? = null
+    var offset: Int? = null
     var forUpdate: Boolean = session.selectsForUpdate && session.vendorSupportsForUpdate()
 
 
@@ -117,6 +118,11 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
                 if (limit != null) {
                     append(" LIMIT ")
                     append(limit)
+
+                    if(offset != null) {
+                        append(" OFFSET ")
+                        append(offset)
+                    }
                 }
             }
 
@@ -169,6 +175,11 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
 
     override fun limit(n: Int): Query {
         this.limit = n
+        return this
+    }
+
+    override fun offset(n: Int): Query {
+        this.offset = n
         return this
     }
 
