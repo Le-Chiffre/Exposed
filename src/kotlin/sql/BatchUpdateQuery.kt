@@ -11,7 +11,7 @@ class BatchUpdateQuery(val table: IdTable) {
         data.add(id to HashMap())
     }
 
-    fun <T> set(column: Column<T>, value: T) {
+    operator fun <T> set(column: Column<T>, value: T) {
         val values = data.last().second
 
         if (values containsKey column) {
@@ -33,7 +33,7 @@ class BatchUpdateQuery(val table: IdTable) {
 
         val columns = set.first().second.keySet().toList()
 
-        sqlStatement.append(columns.map {"${session.identity(it)} = ?"}.join(", "))
+        sqlStatement.append(columns.map {"${session.identity(it)} = ?"}.joinToString(", "))
         sqlStatement.append(" WHERE ${session.identity(table.id)} = ?")
 
         val sqlText = sqlStatement.toString()
@@ -49,7 +49,7 @@ class BatchUpdateQuery(val table: IdTable) {
 
             val count = stmt.executeBatch()!!
 
-            assert(count.size() == set.size()) { "Number of results don't match number of entries in batch" }
+            assert(count.size() == set.size) { "Number of results don't match number of entries in batch" }
 
             count.sum()
         }

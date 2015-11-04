@@ -1,6 +1,6 @@
 package kotlin.sql
 
-import java.util.LinkedHashMap
+import java.util.*
 
 /**
  * isIgnore is supported for mysql only
@@ -9,7 +9,7 @@ class InsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace
     val values = LinkedHashMap<Column<*>, Any?>()
     var generatedKey: Int? = null
 
-    fun <T> set(column: Column<T>, value: T) {
+    operator fun <T> set(column: Column<T>, value: T) {
         if (values containsKey column) {
             error("$column is already initialized")
         }
@@ -17,7 +17,7 @@ class InsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace
         values.put(column, column.columnType.valueToDB(value))
     }
 
-    fun get(column: Column<Int>): Int {
+    infix operator fun get(column: Column<Int>): Int {
         return generatedKey ?: error("No key generated")
     }
 
@@ -34,17 +34,17 @@ class InsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace
         var sql = StringBuilder("$insert ${ignore}INTO ${session.identity(table)}")
 
         sql.append(" (")
-        sql.append((values map { session.identity(it.key) }).join(", "))
+        sql.append((values map { session.identity(it.key) }).joinToString(", "))
         sql.append(") ")
 
         sql.append("VALUES (")
-        sql.append((values map { builder.registerArgument(it.value, it.key.columnType) }). join(", "))
+        sql.append((values map { builder.registerArgument(it.value, it.key.columnType) }).joinToString(", "))
 
         sql.append(") ")
 
         if (isReplace && Session.get().vendor == DatabaseVendor.H2 && Session.get().vendorCompatibleWith() == DatabaseVendor.MySql) {
             sql.append("ON DUPLICATE KEY UPDATE ")
-            sql.append(values.map { "${session.identity(it.key)}=${it.key.columnType.valueToString(it.value)}"}.join(", "))
+            sql.append(values.map { "${session.identity(it.key)}=${it.key.columnType.valueToString(it.value)}"}.joinToString(", "))
         }
 
         try {

@@ -1,9 +1,23 @@
 package kotlin.sql
 
-open class Column<T>(val table: Table, val name: String, override val columnType: ColumnType) : ExpressionWithColumnType<T>, DdlAware {
+open class Column<T>(val table: Table, val name: String, override val columnType: ColumnType) : ExpressionWithColumnType<T>(), DdlAware {
     var referee: Column<*>? = null
     var onDelete: ReferenceOption? = null
     var defaultValue: T? = null
+
+    override fun equals(other: Any?): Boolean {
+        return (other as? Column<*>)?.let {
+            it.table == table && it.name == name && it.columnType == columnType
+        } ?: false
+    }
+
+    override fun hashCode(): Int {
+        return table.hashCode()*31 + name.hashCode()
+    }
+
+    override fun toString(): String {
+        return "$table.$name"
+    }
 
     override fun toSQL(queryBuilder: QueryBuilder): String {
         return Session.get().fullIdentity(this);
@@ -41,4 +55,5 @@ open class Column<T>(val table: Table, val name: String, override val columnType
     }
 }
 
-class PKColumn<T>(table: Table, name: String, columnType: ColumnType) : Column<T>(table, name, columnType)
+class PKColumn<T>(table: Table, name: String, columnType: ColumnType) : Column<T>(table, name, columnType) {
+}

@@ -1,18 +1,14 @@
 package kotlin.sql
 
 import org.joda.time.DateTime
-import java.lang
-import java.lang.reflect.Constructor
 import java.math.BigDecimal
 import java.sql.Blob
 import java.util.*
 import kotlin.dao.EntityID
 import kotlin.dao.IdTable
-import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaType
 
 interface FieldSet {
     val fields: List<Expression<*>>
@@ -39,7 +35,7 @@ enum class JoinType {
     FULL
 }
 
-fun Table.join (otherTable: Table) : Join {
+infix fun Table.join (otherTable: Table) : Join {
     return Join (this, otherTable, JoinType.INNER)
 }
 
@@ -47,11 +43,11 @@ fun Table.join (otherTable: Table, joinType: JoinType, onColumn: Column<*>? = nu
     return Join (this, otherTable, joinType, onColumn, otherColumn, additionalConstraint)
 }
 
-fun Table.innerJoin (otherTable: Table) : Join {
+infix fun Table.innerJoin (otherTable: Table) : Join {
     return Join (this, otherTable, JoinType.INNER)
 }
 
-fun Table.leftJoin (otherTable: Table) : Join {
+infix fun Table.leftJoin (otherTable: Table) : Join {
     return Join (this, otherTable, JoinType.LEFT)
 }
 
@@ -71,11 +67,11 @@ class Join (val table: Table) : ColumnSet() {
 
     val joinParts: ArrayList<JoinPart> = ArrayList();
 
-    fun innerJoin (otherTable: Table) : Join {
+    infix fun innerJoin (otherTable: Table) : Join {
         return join(otherTable, JoinType.INNER)
     }
 
-    fun leftJoin (otherTable: Table) : Join {
+    infix fun leftJoin (otherTable: Table) : Join {
         return join(otherTable, JoinType.LEFT)
     }
 
@@ -246,7 +242,7 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
         return this
     }
 
-    fun <T, S: T, C:Column<S>> C.references(ref: Column<T>): C {
+    infix fun <T, S: T, C:Column<S>> C.references(ref: Column<T>): C {
         referee = ref
         return this
     }
@@ -306,7 +302,7 @@ open class Table(name: String = ""): ColumnSet(), DdlAware {
             for (column in columns) {
                 ddl.append(column.descriptionDdl())
                 c++
-                if (c < columns.size()) {
+                if (c < columns.size) {
                     ddl.append(", ")
                 }
             }
@@ -399,13 +395,13 @@ open class BaseLookupTable<T: Number, U>(private val type: KClass<*>, keyName: S
             columns.zip(constructor.javaConstructor!!.parameterTypes).forEachIndexed {i, v ->
                 if(v.first.columnType.isNullable && v.second.isPrimitive) {
                     primitives.add(Pair(i, when(v.second) {
-                        lang.Long.TYPE -> 0L
-                        lang.Integer.TYPE -> 0
-                        lang.Short.TYPE -> 0.toShort()
-                        lang.Byte.TYPE -> 0.toByte()
-                        lang.Float.TYPE -> 0f
-                        lang.Double.TYPE -> 0.0
-                        lang.Boolean.TYPE -> false
+                        java.lang.Long.TYPE -> 0L
+                        java.lang.Integer.TYPE -> 0
+                        java.lang.Short.TYPE -> 0.toShort()
+                        java.lang.Byte.TYPE -> 0.toByte()
+                        java.lang.Float.TYPE -> 0f
+                        java.lang.Double.TYPE -> 0.0
+                        java.lang.Boolean.TYPE -> false
                         else -> 0
                     }))
                 }

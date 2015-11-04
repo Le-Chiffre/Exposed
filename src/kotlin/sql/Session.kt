@@ -54,6 +54,8 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
     var selectsForUpdate = false
 
     val statements = StringBuilder()
+    // prepare statement as key and count to execution time as value
+    val statementStats = hashMapOf<String, Pair<Int,Long>>()
     val outerSession = threadLocal.get()
 
     init {
@@ -137,6 +139,9 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
 
         if (debug) {
             statements.append(describeStatement(context.args, delta, context.stmt))
+            statementStats.getOrElse(context.stmt, { 0 to 0 }).let { pair ->
+                statementStats[context.stmt] = (pair.first + 1) to (pair.second + delta)
+            }
         }
 
         if (delta > warnLongQueriesDuration) {
@@ -299,7 +304,7 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
     }
 
     private fun quoteIfNecessary (identity: String) : String {
-        return (identity.split('.') map {quoteTokenIfNecessary(it)}).join(".")
+        return (identity.split('.') map {quoteTokenIfNecessary(it)}).joinToString(".")
     }
 
     private fun quoteTokenIfNecessary(token: String) : String {

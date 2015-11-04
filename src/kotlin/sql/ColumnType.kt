@@ -21,7 +21,7 @@ abstract class ColumnType(var isNullable: Boolean = false, var isAutoIncrement: 
             }
 
             is List<*> -> {
-                value.map {valueToString(it)}.join(",")
+                value.map {valueToString(it)}.joinToString(",")
             }
 
             else ->  {
@@ -41,9 +41,13 @@ abstract class ColumnType(var isNullable: Boolean = false, var isAutoIncrement: 
     public open fun setParameter(stmt: PreparedStatement, index: Int, value: Any) {
         stmt.setObject(index, value)
     }
+
+    override fun toString(): String {
+        return sqlType()
+    }
 }
 
-data class EntityIDColumnType(val table: IdTable, autoinc: Boolean = false): ColumnType(autoinc) {
+class EntityIDColumnType(val table: IdTable, autoinc: Boolean = false): ColumnType(autoinc) {
     override fun sqlType(): String  = "INT"
 
     override fun notNullValueToDB(value: Any): Any {
@@ -62,7 +66,7 @@ data class EntityIDColumnType(val table: IdTable, autoinc: Boolean = false): Col
     }
 }
 
-data class CharacterColumnType() : ColumnType() {
+class CharacterColumnType() : ColumnType() {
     override fun sqlType(): String  = "CHAR"
 
     override fun valueFromDB(value: Any): Any {
@@ -74,7 +78,7 @@ data class CharacterColumnType() : ColumnType() {
     }
 }
 
-data class ShortColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
+class ShortColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
     override fun sqlType(): String  = "SMALLINT"
 
     override fun valueFromDB(value: Any): Any {
@@ -87,7 +91,8 @@ data class ShortColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
     }
 }
 
-data class IntegerColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
+class IntegerColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
+
     override fun sqlType(): String  = "INT"
 
     override fun valueFromDB(value: Any): Any {
@@ -99,7 +104,7 @@ data class IntegerColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
     }
 }
 
-data class LongColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
+class LongColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
     override fun sqlType(): String  = "BIGINT"
 
     override fun valueFromDB(value: Any): Any {
@@ -111,11 +116,11 @@ data class LongColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
     }
 }
 
-data class DecimalColumnType(val scale: Int, val precision: Int): ColumnType() {
+class DecimalColumnType(val scale: Int, val precision: Int): ColumnType() {
     override fun sqlType(): String  = "DECIMAL($scale, $precision)"
 }
 
-data class FloatColumnType(): ColumnType() {
+class FloatColumnType(): ColumnType() {
     override fun sqlType(): String  = "FLOAT"
 
     override fun valueFromDB(value: Any): Any {
@@ -128,7 +133,7 @@ data class FloatColumnType(): ColumnType() {
     }
 }
 
-data class EnumerationColumnType<T:Enum<T>>(val klass: Class<T>): ColumnType() {
+class EnumerationColumnType<T:Enum<T>>(val klass: Class<T>): ColumnType() {
     override fun sqlType(): String  = "INT"
 
     override fun notNullValueToDB(value: Any): Any {
@@ -147,7 +152,7 @@ data class EnumerationColumnType<T:Enum<T>>(val klass: Class<T>): ColumnType() {
     }
 }
 
-data class DateColumnType(val time: Boolean): ColumnType() {
+class DateColumnType(val time: Boolean): ColumnType() {
     override fun sqlType(): String  = if (time) "DATETIME" else "DATE"
 
     protected override fun nonNullValueToString(value: Any): String {
@@ -195,7 +200,7 @@ data class DateColumnType(val time: Boolean): ColumnType() {
     }
 }
 
-data class TimestampColumnType: ColumnType() {
+class TimestampColumnType: ColumnType() {
     override fun sqlType(): String = "TIMESTAMP"
 
     protected override fun nonNullValueToString(value: Any): String {
@@ -233,7 +238,7 @@ data class TimestampColumnType: ColumnType() {
     }
 }
 
-data class StringColumnType(val length: Int = 65535, val collate: String? = null): ColumnType() {
+class StringColumnType(val length: Int = 65535, val collate: String? = null): ColumnType() {
     override fun sqlType(): String  {
         val ddl = StringBuilder()
 
@@ -277,7 +282,7 @@ data class StringColumnType(val length: Int = 65535, val collate: String? = null
     }
 }
 
-data class BlobColumnType(): ColumnType() {
+class BlobColumnType(): ColumnType() {
     override fun sqlType(): String  = "BLOB"
 
     override fun nonNullValueToString(value: Any): String {
@@ -285,7 +290,7 @@ data class BlobColumnType(): ColumnType() {
     }
 }
 
-data class BooleanColumnType() : ColumnType() {
+class BooleanColumnType() : ColumnType() {
     override fun sqlType(): String  = "BIT"
 
     override fun nonNullValueToString(value: Any): String {

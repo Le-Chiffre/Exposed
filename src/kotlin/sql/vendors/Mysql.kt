@@ -34,7 +34,7 @@ internal object MysqlDialect : VendorDialect() {
 
         fun inTableList(): String {
             if (tables.isNotEmpty()) {
-                return " AND ku.TABLE_NAME IN ${tableNames.join("','", prefix = "('", postfix = "')")}"
+                return " AND ku.TABLE_NAME IN ${tableNames.joinToString("','", prefix = "('", postfix = "')")}"
             }
             return ""
         }
@@ -100,11 +100,19 @@ internal object MysqlDialect : VendorDialect() {
         return Session.get().connection.catalog
     }
 
-    override fun <T : String?> ExpressionWithColumnType<T>.match(pattern: String): Op<Boolean> = MATCH(this, pattern)
 
-    private data class MATCH(val expr: ExpressionWithColumnType<*>, val pattern: String): Op<Boolean>() {
+    override fun <T : String?> ExpressionWithColumnType<T>.match(pattern: String, mode: MatchMode?): Op<Boolean> = MATCH(this, pattern, mode ?: MysqlMatchMode.STRICT)
+
+    private class MATCH(val expr: ExpressionWithColumnType<*>, val pattern: String, val mode: MatchMode): Op<Boolean>() {
         override fun toSQL(queryBuilder: QueryBuilder): String {
-            return "MATCH(${expr.toSQL(queryBuilder)}) AGAINST ('$pattern' IN BOOLEAN  MODE)"
+            return "MATCH(${expr.toSQL(queryBuilder)}) AGAINST ('$pattern' ${mode.mode()})"
         }
     }
+}
+
+enum class MysqlMatchMode(val operator: String): MatchMode {
+    STRICT("IN BOOLEAN MODE"),
+    NATURAL_LANGUAGE("IN NATURAL LANGUAGE MODE");
+
+    override fun mode() = operator
 }

@@ -30,11 +30,14 @@ interface DatabaseMetadataDialect {
 }
 
 interface DialectSpecificFunctions {
-    fun<T:String?> ExpressionWithColumnType<T>.match(pattern: String): Op<Boolean> = with(SqlExpressionBuilder) { this@match.like(pattern) }
+    fun<T:String?> ExpressionWithColumnType<T>.match(pattern: String, mode: MatchMode? = null): Op<Boolean> = with(SqlExpressionBuilder) { this@match.like(pattern) }
+}
+
+interface MatchMode {
+    fun mode() : String
 }
 
 internal abstract class VendorDialect : DatabaseMetadataDialect, DialectSpecificFunctions {
-
     /* Cached values */
     private var _allTableNames: List<String>? = null
     val allTablesNames: List<String>
@@ -133,5 +136,6 @@ private object DefaultVendorDialect : VendorDialect()
 
 public fun DatabaseVendor.dialect() : DatabaseMetadataDialect = when (this) {
     DatabaseVendor.MySql -> MysqlDialect
+    DatabaseVendor.H2 -> H2Dialect
     else -> DefaultVendorDialect
 }

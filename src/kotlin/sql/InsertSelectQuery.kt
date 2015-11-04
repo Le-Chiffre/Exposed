@@ -5,7 +5,7 @@ import java.sql.Statement
 class InsertSelectQuery(val table: Table, val selectQuery: Query, val isIgnore: Boolean = false, val isReplace: Boolean = false) {
     var statement: Statement? = null
 
-    fun get(column: Column<Int>): Int {
+    operator fun get(column: Column<Int>): Int {
         //TODO: use column!!!
         val rs = (statement?:error("Statement is not executed")).generatedKeys!!;
         if (rs.next()) {
@@ -16,7 +16,7 @@ class InsertSelectQuery(val table: Table, val selectQuery: Query, val isIgnore: 
     }
 
     fun execute(session: Session) {
-        val columns = table.columns.filter { !it.columnType.isAutoIncrement }.map { session.identity(it) }.join(", ", "(", ")")
+        val columns = table.columns.filter { !it.columnType.isAutoIncrement }.map { session.identity(it) }.joinToString(", ", "(", ")")
         val ignore = if (isIgnore) " IGNORE " else ""
         val insert = if (!isReplace) "INSERT" else "REPLACE"
         var sql = "$insert ${ignore}INTO ${session.identity(table)} $columns ${selectQuery.toSQL(QueryBuilder(false))}"
