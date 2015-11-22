@@ -299,6 +299,7 @@ class BooleanColumnType() : ColumnType() {
 
     override fun valueFromDB(value: Any): Any {
         return when(value) {
+            is Boolean -> value
             is Float -> value != 0f
             is Int -> value != 0
             is Long -> value != 0L
