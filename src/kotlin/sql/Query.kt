@@ -144,14 +144,19 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
         return this
     }
 
-    infix fun groupBy(vararg columns: Expression<*>): Query {
+    infix fun groupBy(column: Expression<*>): Query {
+        groupedByColumns.add(column)
+        return this
+    }
+
+    fun groupBy(vararg columns: Expression<*>): Query {
         for (column in columns) {
             groupedByColumns.add(column)
         }
         return this
     }
 
-    fun having (op: SqlExpressionBuilder.() -> Op<Boolean>) : Query {
+    infix fun having (op: SqlExpressionBuilder.() -> Op<Boolean>) : Query {
         val oop = Op.build { op() }
         if (having != null) {
             val fake = QueryBuilder(false)
@@ -160,6 +165,8 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
         having = oop;
         return this;
     }
+
+    infix fun orderBy (column: Expression<*>) = orderBy(column, true)
 
     fun orderBy (column: Expression<*>, isAsc: Boolean = true) : Query {
         orderByColumns.add(column to isAsc)
@@ -178,7 +185,7 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
         return this
     }
 
-    override fun offset(n: Int): Query {
+    infix override fun offset(n: Int): Query {
         this.offset = n
         return this
     }
