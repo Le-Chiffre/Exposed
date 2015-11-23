@@ -119,7 +119,7 @@ class Join (val table: Table) : ColumnSet() {
 }
 
 open class Table(name: String = ""): ColumnSet(), DdlAware {
-    val tableName = if (name.length() > 0) name else this.javaClass.simpleName.removeSuffix("Table")
+    val tableName = if (name.length > 0) name else this.javaClass.simpleName.removeSuffix("Table")
 
     override val columns = ArrayList<Column<*>>()
     override fun describe(s: Session): String = s.identity(this)
@@ -368,7 +368,7 @@ open class BaseLookupTable<T: Number, U>(private val type: KClass<*>, keyName: S
             val constructor = type.constructors.find {
                 errorString += "Checking constructor ${it.name}...\n"
 
-                if(it.parameters.size() == r.size()) {
+                if(it.parameters.size == r.size) {
                     // Check if each argument is compatible with the database,
                     // and give a detailed error if not to aid debugging.
                     r.zip(it.javaConstructor!!.parameterTypes).fold(true) {v, p ->
@@ -430,9 +430,9 @@ open class LookupTable<T>(type: KClass<*>, keyName: String): BaseLookupTable<Lon
 
 // Helper functions for creating selects.
 inline fun <T, U, V: BaseLookupTable<T, U>> V.find(db: Database, crossinline predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
-    format(select(predicate()).first())
+    select(predicate()).firstOrNull()?.let {format(it)}
 }
 
 inline fun <T, U, V: BaseLookupTable<T, U>> V.findList(db: Database, crossinline predicate: V.() -> (SqlExpressionBuilder.() -> Op<Boolean>)) = db.withSession {
-    select(predicate()) map {format(it)}
+    select(predicate()).map {format(it)}
 }
