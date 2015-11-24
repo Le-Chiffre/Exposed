@@ -10,7 +10,7 @@ class InsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace
     var generatedKey: Int? = null
 
     operator fun <T> set(column: Column<T>, value: T) {
-        if (values containsKey column) {
+        if (values.containsKey(column)) {
             error("$column is already initialized")
         }
 
@@ -30,25 +30,25 @@ class InsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace
     fun execute(session: Session): Int {
         val builder = QueryBuilder(true)
         val ignore = if (isIgnore && Session.get().vendor == DatabaseVendor.MySql) " IGNORE " else ""
-        val insert = if (isReplace && Session.get().vendor == DatabaseVendor.MySql) "REPLACE" else "INSERT"
+        val insert = if (isReplace && Session.get().vendor != DatabaseVendor.MySql) "REPLACE" else "INSERT"
         var sql = StringBuilder("$insert ${ignore}INTO ${session.identity(table)}")
 
         sql.append(" (")
-        sql.append((values map { session.identity(it.key) }).joinToString(", "))
+        sql.append((values.map { session.identity(it.key) }).joinToString(", "))
         sql.append(") ")
 
         sql.append("VALUES (")
-        sql.append((values map { builder.registerArgument(it.value, it.key.columnType) }).joinToString(", "))
+        sql.append((values.map { builder.registerArgument(it.value, it.key.columnType) }).joinToString(", "))
 
         sql.append(") ")
 
-        if (isReplace && Session.get().vendor == DatabaseVendor.H2 && Session.get().vendorCompatibleWith() == DatabaseVendor.MySql) {
+        if (isReplace && Session.get().vendorCompatibleWith() == DatabaseVendor.MySql) {
             sql.append("ON DUPLICATE KEY UPDATE ")
             sql.append(values.map { "${session.identity(it.key)}=${it.key.columnType.valueToString(it.value)}"}.joinToString(", "))
         }
 
         try {
-            val autoincs: List<String> = table.columns.filter { it.columnType.isAutoIncrement } map {session.identity(it)}
+            val autoincs: List<String> = table.columns.filter { it.columnType.isAutoIncrement }.map {session.identity(it)}
             return builder.executeUpdate(session, sql.toString(), autoincs) { rs ->
                 if (rs.next()) {
                     generatedKey = rs.getInt(1)
