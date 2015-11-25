@@ -14,8 +14,13 @@ object Cities : Table() {
 }
 
 fun main(args: Array<String>) {
-    var db = Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
-    // var db = Database("jdbc:mysql://localhost/test", driver = "com.mysql.jdbc.Driver", user = "root")
+    //var db = Database.connect("jdbc:h2:mem:test", driver = "org.h2.Driver")
+     var db = Database.connect(
+         url = "jdbc:mysql://192.168.59.103/test?zeroDateTimeBehavior=round&allowMultiQueries=true",
+         driver = "com.mysql.jdbc.Driver",
+         user = "root",
+         password = "mysecretpassword"
+     )
 
     db.withSession {
         create (Cities, Users)
@@ -70,6 +75,11 @@ fun main(args: Array<String>) {
 
         println("All cities:")
 
+        val city0 = Cities.select { Cities.name eq "Munich" }
+        val city1 = Cities.select { Cities.name eq "Prague" }
+        batchSelect(city0, city1)
+        println("${city0.first()[Cities.name]} ${city1.first()[Cities.name]}")
+
         for (city in Cities.selectAll()) {
             println("${city[Cities.id]}: ${city[Cities.name]}")
         }
@@ -77,7 +87,7 @@ fun main(args: Array<String>) {
         println("Manual join:")
         (Users join Cities).slice(Users.name, Cities.name).
             select {(Users.id.eq("andrey") or Users.name.eq("Sergey")) and
-                    Users.id.eq("sergey") and Users.cityId.eq(Cities.id)} forEach {
+                    Users.id.eq("sergey") and Users.cityId.eq(Cities.id)}.forEach {
             println("${it[Users.name]} lives in ${it[Cities.name]}")
         }
 
@@ -85,7 +95,7 @@ fun main(args: Array<String>) {
 
 
         (Users join Cities).slice(Users.name, Users.cityId, Cities.name).
-                select {Cities.name.eq("St. Petersburg") or Users.cityId.isNull()} forEach {
+                select {Cities.name.eq("St. Petersburg") or Users.cityId.isNull()}.forEach {
             if (it[Users.cityId] != null) {
                 println("${it[Users.name]} lives in ${it[Cities.name]}")
             }
@@ -96,7 +106,7 @@ fun main(args: Array<String>) {
 
         println("Functions and group by:")
 
-        (Cities join Users).slice(Cities.name, Users.id.count()).selectAll() groupBy Cities.name forEach {
+        ((Cities join Users).slice(Cities.name, Users.id.count()).selectAll() groupBy Cities.name).forEach {
             val cityName = it[Cities.name]
             val userCount = it[Users.id.count()]
 
