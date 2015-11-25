@@ -161,6 +161,22 @@ object SqlExpressionBuilder: DialectSpecificFunctions {
         return DivideOp (this, wrap(t), columnType)
     }
 
+    infix public fun<T, S: T> ExpressionWithColumnType<T>.or(other: Expression<S>) : ExpressionWithColumnType<T> {
+        return BitOrOp (this, other, columnType)
+    }
+
+    infix public fun<T> ExpressionWithColumnType<T>.or(t: T) : ExpressionWithColumnType<T> {
+        return BitOrOp (this, wrap(t), columnType)
+    }
+
+    infix public fun<T, S: T> ExpressionWithColumnType<T>.and(other: Expression<S>) : ExpressionWithColumnType<T> {
+        return BitAndOp (this, other, columnType)
+    }
+
+    infix public fun<T> ExpressionWithColumnType<T>.and(t: T) : ExpressionWithColumnType<T> {
+        return BitAndOp (this, wrap(t), columnType)
+    }
+
     infix public fun<T:String?> ExpressionWithColumnType<T>.like(pattern: String): Op<Boolean> {
         return LikeOp(this, QueryParameter(pattern, columnType))
     }

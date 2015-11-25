@@ -205,3 +205,11 @@ class DivideOp<T, S: T>(val expr1: Expression<T>, val expr2: Expression<S>, over
         error("!")
     }
 }
+
+class BitOrOp<T, S: T>(val expr1: Expression<T>, val expr2: Expression<S>, override val columnType: ColumnType): ExpressionWithColumnType<T>() {
+    override fun toSQL(queryBuilder: QueryBuilder) = "(${expr1.toSQL(queryBuilder)}) | (${expr2.toSQL(queryBuilder)})"
+}
+
+class BitAndOp<T, S: T>(val expr1: Expression<T>, val expr2: Expression<S>, override val columnType: ColumnType): ExpressionWithColumnType<T>() {
+    override fun toSQL(queryBuilder: QueryBuilder) = "(${expr1.toSQL(queryBuilder)}) & (${expr2.toSQL(queryBuilder)})"
+}
