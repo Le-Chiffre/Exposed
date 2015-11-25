@@ -1,6 +1,7 @@
 package kotlin.sql
 
 import java.sql.ResultSet
+import java.sql.Statement
 import java.util.ArrayList
 import kotlin.dao.EntityCache
 
@@ -39,6 +40,20 @@ class QueryBuilder(val prepared: Boolean) {
             val stmt = session.prepareStatement(sql)
             stmt.fillParameters(args)
             stmt.executeQuery()
+        }
+    }
+
+    public fun executeBatchQuery(session: Session, sql: String, result: (Int, ResultSet) -> Unit) {
+        session.exec(sql, args) {
+            val stmt = session.prepareStatement(sql)
+            stmt.fillParameters(args)
+            var hasMoreResults = stmt.execute()
+            var index = 0
+            while(hasMoreResults) {
+                result(index, stmt.resultSet)
+                hasMoreResults = stmt.getMoreResults(Statement.KEEP_CURRENT_RESULT)
+                index++
+            }
         }
     }
 }

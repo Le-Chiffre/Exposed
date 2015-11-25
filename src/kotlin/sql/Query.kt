@@ -5,6 +5,20 @@ import java.util.*
 import kotlin.dao.EntityCache
 import kotlin.dao.IdTable
 
+fun batchSelect(vararg query: Query) {
+    val queryString = StringBuilder()
+    val builder = QueryBuilder(true)
+    query.forEach {
+        queryString.append(it.toSQL(builder))
+        queryString.append(';')
+    }
+
+    builder.executeBatchQuery(query[0].session, queryString.toString()) {
+        i, result ->
+        query[i].resultCache = query[i].makeIterator(result)
+    }
+}
+
 public class ResultRow(size: Int, private val fieldIndex: Map<Expression<*>, Int>) {
     val data = arrayOfNulls<Any?>(size)
 
@@ -41,7 +55,7 @@ public class ResultRow(size: Int, private val fieldIndex: Map<Expression<*>, Int
     }
 
     override fun toString(): String {
-        return fieldIndex.map { "${it.getKey().toSQL(QueryBuilder(false))}=${data[it.getValue()]}" }.joinToString()
+        return fieldIndex.map { "${it.key.toSQL(QueryBuilder(false))}=${data[it.value]}" }.joinToString()
     }
 
     companion object {
@@ -68,6 +82,10 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
     var offset: Int? = null
     var forUpdate: Boolean = session.selectsForUpdate && session.vendorSupportsForUpdate()
 
+    var emptyCache: Boolean? = null
+    var countCache: Int? = null
+    var resultCache: Iterator<ResultRow>? = null
+
 
     fun toSQL(queryBuilder: QueryBuilder, count: Boolean = false) : String {
         val sql = StringBuilder("SELECT ")
@@ -89,7 +107,7 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
                 }
 */
 
-                append(((completeTables.map {Session.get().identity(it) + ".*"} ) + (fields map {it.toSQL(queryBuilder)})).joinToString(", ", "", ""))
+                append(((completeTables.map {Session.get().identity(it) + ".*"} ) + (fields.map {it.toSQL(queryBuilder)})).joinToString(", ", "", ""))
             }
             append(" FROM ")
             append(set.source.describe(session))
@@ -102,7 +120,7 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
             if (!count) {
                 if (groupedByColumns.isNotEmpty()) {
                     append(" GROUP BY ")
-                    append((groupedByColumns map {it.toSQL(queryBuilder)}).joinToString(", ", "", ""))
+                    append((groupedByColumns.map {it.toSQL(queryBuilder)}).joinToString(", ", "", ""))
                 }
 
                 if (having != null) {
@@ -112,7 +130,7 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
 
                 if (orderByColumns.isNotEmpty()) {
                     append(" ORDER BY ")
-                    append((orderByColumns map { "${it.first.toSQL(queryBuilder)} ${if(it.second) "ASC" else "DESC"}" }).joinToString(", ", "", ""))
+                    append((orderByColumns.map { "${it.first.toSQL(queryBuilder)} ${if(it.second) "ASC" else "DESC"}" }).joinToString(", ", "", ""))
                 }
 
                 if (limit != null) {
@@ -190,6 +208,8 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
         return this
     }
 
+    fun makeIterator(set: ResultSet): Iterator<ResultRow> = ResultIterator(set)
+
     private inner class ResultIterator(val rs: ResultSet): Iterator<ResultRow> {
         private var hasNext: Boolean? = null
         private val fieldsIndex = HashMap<Expression<*>, Int>()
@@ -220,38 +240,47 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
     }
 
     operator public override fun iterator(): Iterator<ResultRow> {
-        flushEntities()
-        val builder = QueryBuilder(true)
-        val sql = toSQL(builder)
-        return ResultIterator(builder.executeQuery(session, sql))
+        if(resultCache == null) {
+            flushEntities()
+            val builder = QueryBuilder(true)
+            val sql = toSQL(builder)
+            resultCache = ResultIterator(builder.executeQuery(session, sql))
+        }
+        return resultCache!!
     }
 
     public override fun count(): Int {
-        flushEntities()
+        if(countCache == null) {
+            flushEntities()
 
-        val builder = QueryBuilder(true)
-        val sql = toSQL(builder, true)
+            val builder = QueryBuilder(true)
+            val sql = toSQL(builder, true)
 
-        val rs = builder.executeQuery(session, sql)
-        rs.next()
-        return rs.getInt(1)
+            val rs = builder.executeQuery(session, sql)
+            rs.next()
+            countCache = rs.getInt(1)
+        }
+        return countCache!!
     }
 
     public override fun empty(): Boolean {
-        flushEntities()
-        val builder = QueryBuilder(true)
+        if(emptyCache == null) {
+            flushEntities()
+            val builder = QueryBuilder(true)
 
-        val selectOneRowStatement = run {
-            val oldLimit = limit
-            try {
-                limit = 1
-                toSQL(builder, false)
-            } finally {
-                limit = oldLimit
+            val selectOneRowStatement = run {
+                val oldLimit = limit
+                try {
+                    limit = 1
+                    toSQL(builder, false)
+                } finally {
+                    limit = oldLimit
+                }
             }
+            // Execute query itself
+            val rs = builder.executeQuery(session, selectOneRowStatement)
+            emptyCache = !rs.next()
         }
-        // Execute query itself
-        val rs = builder.executeQuery(session, selectOneRowStatement)
-        return !rs.next()
+        return emptyCache!!
     }
 }
