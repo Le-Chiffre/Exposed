@@ -83,7 +83,7 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
     fun vendorCompatibleWith(): DatabaseVendor {
         if (vendor == DatabaseVendor.H2) {
             return ((connection as? JdbcConnection)?.session as? org.h2.engine.Session)?.database?.mode?.let { mode ->
-                DatabaseVendor.values().singleOrNull { it.name().equals(mode.name, true) }
+                DatabaseVendor.values.singleOrNull { it.name.equals(mode.name, true) }
             } ?: vendor
         }
 
@@ -238,7 +238,7 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
         for (table in tables) {
             for (column in table.columns) {
                 if (column.referee != null) {
-                    val existingConstraint = existingColumnConstraint.get(Pair(table.tableName, column.name))?.firstOrNull()
+                    val existingConstraint = existingColumnConstraint[Pair(table.tableName, column.name)]?.firstOrNull()
                     if (existingConstraint == null) {
                         statements.add(createFKey(column))
                     } else if (existingConstraint.referencedTable != column.referee!!.table.tableName

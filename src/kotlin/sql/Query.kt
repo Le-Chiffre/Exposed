@@ -9,13 +9,19 @@ fun batchSelect(vararg query: Query) {
     val queryString = StringBuilder()
     val builder = QueryBuilder(true)
     query.forEach {
-        queryString.append(it.toSQL(builder))
+        queryString.append(it.toSQL(builder, it.isCount))
         queryString.append(';')
     }
 
     builder.executeBatchQuery(query[0].session, queryString.toString()) {
         i, result ->
-        query[i].resultCache = query[i].makeIterator(result)
+        val q = query[i]
+        if(q.isCount) {
+            result.next()
+            q.countCache = result.getInt(1)
+        } else {
+            q.resultCache = q.makeIterator(result)
+        }
     }
 }
 
@@ -74,7 +80,7 @@ public class ResultRow(size: Int, private val fieldIndex: Map<Expression<*>, Int
     }
 }
 
-open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>?): SizedIterable<ResultRow> {
+open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>?, val isCount: Boolean = false): SizedIterable<ResultRow> {
     val groupedByColumns = ArrayList<Expression<*>>();
     val orderByColumns = ArrayList<Pair<Expression<*>, Boolean>>();
     var having: Op<Boolean>? = null;
@@ -93,22 +99,11 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
         with(sql) {
             if (count) {
                 append("COUNT(*)")
-            }
-            else {
-                val tables = set.source.columns.map { it.table }.toSet()
+            } else {
                 val fields = LinkedHashSet(set.fields)
-                val completeTables = ArrayList<Table>()
-/*              // Do not pretty print with * co the program won't crash on new column added
-                for (table in tables) {
-                    if (fields.containsAll(table.columns)) {
-                        completeTables.add(table)
-                        fields.removeAll(table.columns)
-                    }
-                }
-*/
-
-                append(((completeTables.map {Session.get().identity(it) + ".*"} ) + (fields.map {it.toSQL(queryBuilder)})).joinToString(", ", "", ""))
+                append(fields.map {it.toSQL(queryBuilder)}.joinToString(", ", "", ""))
             }
+
             append(" FROM ")
             append(set.source.describe(session))
 
