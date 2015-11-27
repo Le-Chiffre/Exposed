@@ -3,6 +3,9 @@ package kotlin.sql
 import org.joda.time.DateTime
 import kotlin.dao.EntityID
 
+val always = LiteralOp<Boolean>(BooleanColumnType(), true)
+val never = LiteralOp<Boolean>(BooleanColumnType(), false)
+
 abstract class Op<T>() : Expression<T>() {
     companion object {
         inline fun <T> build(op: SqlExpressionBuilder.()-> Op<T>): Op<T> {
@@ -12,11 +15,13 @@ abstract class Op<T>() : Expression<T>() {
 }
 
 infix fun Op<Boolean>.and(op: Expression<Boolean>): Op<Boolean> {
-    return AndOp(this, op)
+    return if(op is LiteralOp<Boolean> && op.value == true) this
+    else AndOp(this, op)
 }
 
 infix fun Op<Boolean>.or(op: Expression<Boolean>): Op<Boolean> {
-    return OrOp(this, op)
+    return if(op is LiteralOp<*> && op.value == false) this
+    else OrOp(this, op)
 }
 
 class IsNullOp(val expr: Expression<*>): Op<Boolean>() {
