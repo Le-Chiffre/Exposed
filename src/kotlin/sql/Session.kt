@@ -63,27 +63,16 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
         threadLocal.set(this)
     }
 
-    val vendor: DatabaseVendor by lazy {
-        val url = connection.metaData!!.url!!
-        when {
-            url.startsWith("jdbc:mysql") -> DatabaseVendor.MySql
-            url.startsWith("jdbc:oracle") -> DatabaseVendor.Oracle
-            url.startsWith("jdbc:sqlserver") -> DatabaseVendor.SQLServer
-            url.startsWith("jdbc:postgresql") -> DatabaseVendor.PostgreSQL
-            url.startsWith("jdbc:h2") -> DatabaseVendor.H2
-            else -> error("Unknown database type $url")
-        }
-    }
+    val vendor: DatabaseVendor get() = db.vendor
 
     fun vendorSupportsForUpdate(): Boolean {
         return vendor != DatabaseVendor.H2
     }
 
-
     fun vendorCompatibleWith(): DatabaseVendor {
         if (vendor == DatabaseVendor.H2) {
             return ((connection as? JdbcConnection)?.session as? org.h2.engine.Session)?.database?.mode?.let { mode ->
-                DatabaseVendor.values.singleOrNull { it.name.equals(mode.name, true) }
+                DatabaseVendor.values().singleOrNull { it.name.equals(mode.name, true) }
             } ?: vendor
         }
 
@@ -100,7 +89,7 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
 
     fun flushCache(): List<Entity> {
         with(EntityCache.getOrCreate(this)) {
-            val newEntities = inserts.flatMap { it.getValue() }
+            val newEntities = inserts.flatMap { it.value }
             flush()
             return newEntities
         }

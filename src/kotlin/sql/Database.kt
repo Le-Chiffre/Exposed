@@ -9,6 +9,19 @@ import java.sql.SQLException
 import javax.sql.DataSource
 
 public class Database private constructor(val connector: () -> Connection) {
+    val vendor: DatabaseVendor by lazy {
+        val connection = connector()
+        val url = connection.metaData!!.url!!
+        connection.close()
+        when {
+            url.startsWith("jdbc:mysql") -> DatabaseVendor.MySql
+            url.startsWith("jdbc:oracle") -> DatabaseVendor.Oracle
+            url.startsWith("jdbc:sqlserver") -> DatabaseVendor.SQLServer
+            url.startsWith("jdbc:postgresql") -> DatabaseVendor.PostgreSQL
+            url.startsWith("jdbc:h2") -> DatabaseVendor.H2
+            else -> error("Unknown database type $url")
+        }
+    }
 
     val url: String by lazy(LazyThreadSafetyMode.NONE) {
         val connection = connector()
