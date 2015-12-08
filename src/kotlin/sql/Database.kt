@@ -93,22 +93,16 @@ public class Database private constructor(val connector: () -> Connection) {
             maxConnections: Int = 20,
             poolPartitions: Int = 4
         ): Database? {
-            try {
-                Class.forName(driver).newInstance()
-                val config = BoneCPConfig()
-                config.jdbcUrl = url
-                config.username = user
-                config.password = password
-                config.partitionCount = poolPartitions
-                config.maxConnectionsPerPartition = maxConnections
+            Class.forName(driver).newInstance()
+            val config = BoneCPConfig()
+            config.jdbcUrl = url
+            config.username = user
+            config.password = password
+            config.partitionCount = poolPartitions
+            config.maxConnectionsPerPartition = maxConnections
 
-                val pool = BoneCP(config)
-                pool.connection
-
-                return Database {pool.connection}
-            } catch(e: Exception) {
-                return null
-            }
+            val pool = BoneCP(config)
+            return Database {pool.connection}
         }
     }
 }
@@ -119,8 +113,7 @@ val Database.name : String get() {
         val params = query.indexOf('?')
         if (params > 0) {
             query.substring(0, params)
-        }
-        else {
+        } else {
             query
         }
     }
