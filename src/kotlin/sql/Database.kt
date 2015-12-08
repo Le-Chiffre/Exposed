@@ -1,5 +1,7 @@
 package kotlin.sql
 
+import com.jolbox.bonecp.BoneCP
+import com.jolbox.bonecp.BoneCPConfig
 import org.joda.time.DateTimeZone
 import java.sql.Connection
 import java.sql.DriverManager
@@ -80,6 +82,32 @@ public class Database private constructor(val connector: () -> Connection) {
 
             return Database {
                 DriverManager.getConnection(url, user, password)
+            }
+        }
+
+        public fun connectPooled(
+            url: String,
+            driver: String,
+            user: String = "",
+            password: String = "",
+            maxConnections: Int = 20,
+            poolPartitions: Int = 4
+        ): Database? {
+            try {
+                Class.forName(driver).newInstance()
+                val config = BoneCPConfig()
+                config.jdbcUrl = url
+                config.username = user
+                config.password = password
+                config.partitionCount = poolPartitions
+                config.maxConnectionsPerPartition = maxConnections
+
+                val pool = BoneCP(config)
+                pool.connection
+
+                return Database {pool.connection}
+            } catch(e: Exception) {
+                return null
             }
         }
     }
