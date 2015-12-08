@@ -92,7 +92,7 @@ public class Database private constructor(val connector: () -> Connection) {
             password: String = "",
             maxConnections: Int = 20,
             poolPartitions: Int = 4
-        ): Database? {
+        ): Database {
             Class.forName(driver).newInstance()
             val config = BoneCPConfig()
             config.jdbcUrl = url
