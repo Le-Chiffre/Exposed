@@ -2,7 +2,7 @@ package kotlin.sql
 
 import java.util.*
 
-class BatchInsertQuery(val table: Table, val _ignore: Boolean = false) {
+class BatchInsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace: Boolean = false) {
     val data = ArrayList<LinkedHashMap<Column<*>, Any?>>()
 
     fun addBatch() {
@@ -25,8 +25,9 @@ class BatchInsertQuery(val table: Table, val _ignore: Boolean = false) {
 
         val generatedKeys = ArrayList<Long>()
         val (auto, columns) = table.columns.partition { it.columnType.isAutoIncrement }
-        val ignore = if (_ignore) "IGNORE" else ""
-        var sql = StringBuilder("INSERT $ignore INTO ${session.identity(table)}")
+        val ignore = if (isIgnore) "IGNORE" else ""
+        val insert = if (isReplace && Session.get().vendor != DatabaseVendor.MySql) "REPLACE" else "INSERT"
+        var sql = StringBuilder("$insert $ignore INTO ${session.identity(table)}")
 
         sql.append(" (")
         sql.append((columns.map{ session.identity(it) }).joinToString(", "))
@@ -35,6 +36,11 @@ class BatchInsertQuery(val table: Table, val _ignore: Boolean = false) {
         sql.append("VALUES ")
         val paramsPlaceholder = columns.map{ "?" }.joinToString(", ", prefix = "(", postfix = "),")
         sql.append(paramsPlaceholder.repeat(data.size).removeSuffix(","))
+
+        if (isReplace && Session.get().vendorCompatibleWith() == DatabaseVendor.MySql) {
+            sql.append("ON DUPLICATE KEY UPDATE ")
+            sql.append(columns.map {"${session.identity(it)} = VALUES(${session.identity(it)})"}.joinToString(", "))
+        }
 
         try {
             val sqlText = sql.toString()

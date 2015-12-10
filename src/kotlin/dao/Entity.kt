@@ -112,7 +112,7 @@ class InnerTableLink<Target: Entity>(val table: Table,
         return sourceRefColumn
     }
 
-    operator fun get(o: Entity, p: KProperty<*>): SizedIterable<Target> {
+    operator fun getValue(o: Entity, p: KProperty<*>): SizedIterable<Target> {
         fun alreadyInJoin() = (target.dependsOnTables as? Join)?.joinParts?.any { it.joinType == JoinType.INNER && it.table == table} ?: false
         val sourceRefColumn = getSourceRefColumn(o)
         val entityTables: ColumnSet = when {
@@ -127,14 +127,14 @@ class InnerTableLink<Target: Entity>(val table: Table,
         return EntityCache.getOrCreate(Session.get()).getOrPutReferrers(o, sourceRefColumn, query)
     }
 
-    operator fun set(o: Entity, p: KProperty<*>, value: SizedIterable<Target>) {
+    operator fun setValue(o: Entity, p: KProperty<*>, value: SizedIterable<Target>) {
         val sourceRefColumn = getSourceRefColumn(o)
         val targeRefColumn = getTargetRefColumn()
 
         with(Session.get()) {
             val entityCache = EntityCache.getOrCreate(Session.get())
             entityCache.flush()
-            val existingIds = get(o, p).map { it.id }.toSet()
+            val existingIds = getValue(o, p).map { it.id }.toSet()
             entityCache.clearReferrersCache()
 
             val targetIds = value.map { it.id }.toList()

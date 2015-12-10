@@ -107,7 +107,7 @@ internal abstract class VendorDialect : DatabaseMetadataDialect, DialectSpecific
 
     override @Synchronized fun existingIndices(vararg tables: Table): Map<String, List<Index>> {
         for(table in tables.map {it.tableName}) {
-            existingIndicesCache.getOrPut(table, {
+            existingIndicesCache.concurrentGetOrPut(table, {
                 val rs = Session.get().connection.metaData.getIndexInfo(getDatabase(), null, table, false, false)
 
                 val tmpIndices = hashMapOf<Pair<String, Boolean>, MutableList<String>>()
