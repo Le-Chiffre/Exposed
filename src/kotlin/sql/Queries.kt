@@ -42,7 +42,7 @@ fun <T:Table> T.insert(body: T.(InsertQuery)->Unit): InsertQuery {
     return answer
 }
 
-fun <T:Table, E:Any> T.batchInsert(data: Iterable<E>, ignore: Boolean = false, body: BatchInsertQuery.(E)->Unit): List<Long> {
+fun <T:Table, E:Any> T.batchInsert(data: Iterable<E>, ignore: Boolean = false, replace: Boolean = false, body: BatchInsertQuery.(E)->Unit): List<Long> {
     BatchInsertQuery(this, ignore).let {
         for (element in data) {
             it.addBatch()
@@ -51,6 +51,8 @@ fun <T:Table, E:Any> T.batchInsert(data: Iterable<E>, ignore: Boolean = false, b
         return it.execute(Session.get())
     }
 }
+
+fun <T:Table, E:Any> T.batchReplace(data: Iterable<E>, body: BatchInsertQuery.(E)->Unit) = batchInsert(data, false, true, body)
 
 fun <T:Table> T.insertIgnore(body: T.(InsertQuery)->Unit): InsertQuery {
     val answer = InsertQuery(this, isIgnore = true)
