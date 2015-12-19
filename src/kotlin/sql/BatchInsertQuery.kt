@@ -1,5 +1,6 @@
 package kotlin.sql
 
+import com.rimmer.DBType
 import java.util.*
 
 class BatchInsertQuery(val table: Table, val isIgnore: Boolean = false, val isReplace: Boolean = false) {
@@ -56,7 +57,9 @@ class BatchInsertQuery(val table: Table, val isIgnore: Boolean = false, val isRe
 
                 log(sqlText, args)
 
+                val metricsId = session.db.metrics?.startQuery(DBType.mysql, sqlText)
                 val count = stmt.executeUpdate()
+                session.db.metrics?.endQuery(metricsId!!)
 
                 assert(count == data.size) { "Number of results don't match number of entries in batch" }
 

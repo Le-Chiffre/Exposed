@@ -65,6 +65,13 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>mysql</groupId>
@@ -105,6 +112,11 @@
             <groupId>com.jolbox</groupId>
             <artifactId>bonecp</artifactId>
             <version>0.8.0.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.Le-Chiffre</groupId>
+            <artifactId>Metrics</artifactId>
+            <version>262f77be3ea9ece5ca380c7246eaca9ebdd4773f</version>
         </dependency>
     </dependencies>
 </project>

@@ -1,5 +1,6 @@
 package kotlin.sql
 
+import com.rimmer.DBType
 import org.h2.jdbc.JdbcConnection
 import java.sql.Connection
 import java.sql.PreparedStatement
@@ -143,7 +144,11 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
     fun <T> exec(stmt: String, args: List<Pair<ColumnType, Any?>> = listOf(), body: () -> T): T {
         return execBatch {
             log(stmt, args)
-            body()
+
+            val metricsId = db.metrics?.startQuery(DBType.mysql, stmt)
+            val result = body()
+            db.metrics?.endQuery(metricsId!!)
+            result
         }
     }
 

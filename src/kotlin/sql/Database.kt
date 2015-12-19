@@ -2,13 +2,14 @@ package kotlin.sql
 
 import com.jolbox.bonecp.BoneCP
 import com.jolbox.bonecp.BoneCPConfig
+import com.rimmer.DBMetrics
 import org.joda.time.DateTimeZone
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import javax.sql.DataSource
 
-public class Database private constructor(val connector: () -> Connection) {
+public class Database private constructor(var metrics: DBMetrics? = null, val connector: () -> Connection) {
     val vendor: DatabaseVendor by lazy {
         val connection = connector()
         val url = connection.metaData!!.url!!
@@ -32,7 +33,7 @@ public class Database private constructor(val connector: () -> Connection) {
         }
     }
 
-    // Overloading methods instead of default parameters for Java conpatibility
+    // Overloading methods instead of default parameters for Java compatibility
     fun <T> withSession(statement: Session.() -> T): T = withSession(Connection.TRANSACTION_REPEATABLE_READ, 3, statement)
 
     fun <T> withSession(transactionIsolation: Int, repetitionAttempts: Int, statement: Session.() -> T): T {
@@ -49,8 +50,7 @@ public class Database private constructor(val connector: () -> Connection) {
     fun <T> inNewTransaction(transactionIsolation: Int, repetitionAttempts: Int, statement: Session.() -> T): T {
         var repetitions = 0
 
-        while (true) {
-
+        while(true) {
             val session = Session(this, {
                 val connection = connector()
                 connection.autoCommit = false
@@ -62,20 +62,17 @@ public class Database private constructor(val connector: () -> Connection) {
                 val answer = session.statement()
                 session.commit()
                 return answer
-            }
-            catch (e: SQLException) {
+            } catch (e: SQLException) {
                 exposedLogger.info("Session repetition=$repetitions: ${e.message}", e)
                 session.rollback()
                 repetitions++
                 if (repetitions >= repetitionAttempts) {
                     throw e
                 }
-            }
-            catch (e: Throwable) {
+            } catch (e: Throwable) {
                 session.rollback()
                 throw e
-            }
-            finally {
+            } finally {
                 session.close()
             }
         }
@@ -84,16 +81,12 @@ public class Database private constructor(val connector: () -> Connection) {
     public companion object {
         public val timeZone: DateTimeZone = DateTimeZone.UTC
 
-        public fun connect(datasource: DataSource): Database {
-            return Database {
-                datasource.connection!!
-            }
-        }
+        public fun connect(datasource: DataSource) = Database {datasource.connection!!}
 
-        public fun connect(url: String, driver: String, user: String = "", password: String = ""): Database {
+        public fun connect(url: String, driver: String, user: String = "", password: String = "", metrics: DBMetrics? = null): Database {
             Class.forName(driver).newInstance()
 
-            return Database {
+            return Database(metrics) {
                 DriverManager.getConnection(url, user, password)
             }
         }
@@ -104,7 +97,8 @@ public class Database private constructor(val connector: () -> Connection) {
             user: String = "",
             password: String = "",
             maxConnections: Int = 20,
-            poolPartitions: Int = 4
+            poolPartitions: Int = 4,
+            metrics: DBMetrics? = null
         ): Database {
             Class.forName(driver).newInstance()
             val config = BoneCPConfig()
@@ -115,7 +109,7 @@ public class Database private constructor(val connector: () -> Connection) {
             config.maxConnectionsPerPartition = maxConnections
 
             val pool = BoneCP(config)
-            return Database {pool.connection}
+            return Database(metrics) {pool.connection}
         }
     }
 }
