@@ -1,6 +1,6 @@
 package kotlin.sql
 
-import com.rimmer.DBType
+import com.rimmer.metrics.EventType
 import org.h2.jdbc.JdbcConnection
 import java.sql.Connection
 import java.sql.PreparedStatement
@@ -145,9 +145,9 @@ class Session (val db: Database, val connector: ()-> Connection): UserDataHolder
         return execBatch {
             log(stmt, args)
 
-            val metricsId = db.metrics?.startQuery(DBType.mysql, stmt)
+            val metricsId = db.metrics?.startEvent(EventType.mysql, stmt)
             val result = body()
-            db.metrics?.endQuery(metricsId!!)
+            db.metrics?.endEvent(metricsId!!)
             result
         }
     }

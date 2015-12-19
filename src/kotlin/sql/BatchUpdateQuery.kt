@@ -1,6 +1,6 @@
 package kotlin.sql
 
-import com.rimmer.DBType
+import com.rimmer.metrics.EventType
 import java.util.*
 import kotlin.dao.EntityID
 import kotlin.dao.IdTable
@@ -39,7 +39,7 @@ class BatchUpdateQuery(val table: IdTable) {
 
         val sqlText = sqlStatement.toString()
         return session.execBatch {
-            val metricsId = session.db.metrics?.startQuery(DBType.mysql, sqlText)
+            val metricsId = session.db.metrics?.startEvent(EventType.mysql, sqlText)
             val stmt = session.prepareStatement(sqlText)
             for ((id, d) in set) {
                 log(sqlText, columns.map {it.columnType to d[it]} + (IntegerColumnType() to id))
@@ -54,7 +54,7 @@ class BatchUpdateQuery(val table: IdTable) {
             assert(count.size == set.size) { "Number of results don't match number of entries in batch" }
 
             val sum = count.sum()
-            session.db.metrics?.endQuery(metricsId!!)
+            session.db.metrics?.endEvent(metricsId!!)
             sum
         }
     }

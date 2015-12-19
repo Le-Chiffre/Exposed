@@ -2,14 +2,14 @@ package kotlin.sql
 
 import com.jolbox.bonecp.BoneCP
 import com.jolbox.bonecp.BoneCPConfig
-import com.rimmer.DBMetrics
+import com.rimmer.metrics.MetricsWriter
 import org.joda.time.DateTimeZone
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import javax.sql.DataSource
 
-public class Database private constructor(var metrics: DBMetrics? = null, val connector: () -> Connection) {
+public class Database private constructor(var metrics: MetricsWriter? = null, val connector: () -> Connection) {
     val vendor: DatabaseVendor by lazy {
         val connection = connector()
         val url = connection.metaData!!.url!!
@@ -83,7 +83,7 @@ public class Database private constructor(var metrics: DBMetrics? = null, val co
 
         public fun connect(datasource: DataSource) = Database {datasource.connection!!}
 
-        public fun connect(url: String, driver: String, user: String = "", password: String = "", metrics: DBMetrics? = null): Database {
+        public fun connect(url: String, driver: String, user: String = "", password: String = "", metrics: MetricsWriter? = null): Database {
             Class.forName(driver).newInstance()
 
             return Database(metrics) {
@@ -98,7 +98,7 @@ public class Database private constructor(var metrics: DBMetrics? = null, val co
             password: String = "",
             maxConnections: Int = 20,
             poolPartitions: Int = 4,
-            metrics: DBMetrics? = null
+            metrics: MetricsWriter? = null
         ): Database {
             Class.forName(driver).newInstance()
             val config = BoneCPConfig()
