@@ -76,8 +76,8 @@ class Join (val table: Table) : ColumnSet() {
     }
 
     fun join (otherTable: Table, joinType: JoinType = JoinType.INNER, additionalConstraint: (SqlExpressionBuilder.()->Op<Boolean>)? = null) : Join {
-        val keysPair = findKeys (this, otherTable) ?: findKeys (otherTable, this)
-        if (keysPair == null) error ("Cannot join with ${otherTable.tableName} as there is no matching primary key/ foreign key pair")
+        val keysPair = findKeys (this, otherTable) ?: findKeys (otherTable, this) ?:
+            error ("Cannot join with ${otherTable.tableName} as there is no matching primary key/ foreign key pair")
 
         return join(otherTable, joinType, keysPair.first, keysPair.second, additionalConstraint)
     }
