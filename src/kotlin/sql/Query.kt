@@ -1,5 +1,6 @@
 package kotlin.sql
 
+import com.rimmer.metrics.EventType
 import java.sql.ResultSet
 import java.util.*
 import kotlin.dao.EntityCache
@@ -94,6 +95,9 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
 
 
     fun toSQL(queryBuilder: QueryBuilder, count: Boolean = false) : String {
+        val source = set.source.describe(session)
+        val event = session.db.metrics?.startEvent(EventType.mysql_generate, "SELECT $source")
+
         val sql = StringBuilder("SELECT ")
 
         with(sql) {
@@ -105,7 +109,7 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
             }
 
             append(" FROM ")
-            append(set.source.describe(session))
+            append(source)
 
             if (where != null) {
                 append(" WHERE ")
@@ -144,7 +148,9 @@ open class Query(val session: Session, val set: FieldSet, val where: Op<Boolean>
             }
         }
 
-        return sql.toString()
+        val string = sql.toString()
+        session.db.metrics?.endEvent(event!!)
+        return string
     }
 
     override fun forUpdate() : Query {
