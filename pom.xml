@@ -116,7 +116,7 @@
         <dependency>
             <groupId>com.github.Le-Chiffre</groupId>
             <artifactId>Metrics</artifactId>
-            <version>e34d5daac58ebe418f39d1b9a9b2ecbd04d681b4</version>
+            <version>ea5420f4a0261747433dce6d8663d8711724efb4</version>
         </dependency>
     </dependencies>
 </project>
