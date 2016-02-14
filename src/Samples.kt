@@ -1,6 +1,7 @@
 package demo
 
-import kotlin.sql.*
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.*
 
 object Users : Table() {
     val id = varchar("id", 10).primaryKey() // PKColumn<String>

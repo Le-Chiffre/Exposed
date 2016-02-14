@@ -49,7 +49,7 @@ public class TypeGenerator : AbstractProcessor() {
             }
 
             val type = e as TypeElement
-            if (!types!!.isSubtype(type.asType(), elements!!.getTypeElement("kotlin.sql.BaseLookupTable").asType())) {
+            if (!types!!.isSubtype(type.asType(), elements!!.getTypeElement("org.jetbrains.exposed.BaseLookupTable").asType())) {
                 error(e, "Only subclasses of BaseLookupTable can be annotated with Value")
                 continue
             }
