@@ -9,7 +9,7 @@
     <artifactId>exposed</artifactId>
 
     <properties>
-        <kotlin.version>1.0.0-rc-1036</kotlin.version>
+        <kotlin.version>1.0.0</kotlin.version>
     </properties>
 
     <build>
@@ -121,7 +121,7 @@
         <dependency>
             <groupId>com.github.Le-Chiffre</groupId>
             <artifactId>Metrics</artifactId>
-            <version>1f7fa6d50ec9aad594508f2b5bce066c3790695e</version>
+            <version>0efdc916507b02883dfd42f057788da32a688335</version>
         </dependency>
     </dependencies>
 </project>
