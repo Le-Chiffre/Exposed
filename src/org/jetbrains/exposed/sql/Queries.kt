@@ -43,7 +43,7 @@ fun <T: Table> T.insert(body: T.(InsertQuery)->Unit): InsertQuery {
 }
 
 fun <T: Table, E:Any> T.batchInsert(data: Iterable<E>, ignore: Boolean = false, replace: Boolean = false, body: BatchInsertQuery.(E)->Unit): List<Long> {
-    BatchInsertQuery(this, ignore).let {
+    BatchInsertQuery(this, ignore, replace).let {
         for (element in data) {
             it.addBatch()
             it.body(element)
