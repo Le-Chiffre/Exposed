@@ -99,6 +99,7 @@ class IntegerColumnType(autoinc: Boolean = false): ColumnType(autoinc) {
         return when(value) {
             is Int -> value
             is Number -> value.toInt()
+            is Boolean -> if(value) 1 else 0
             else -> error("Unexpected value of type Int: $value")
         }
     }
